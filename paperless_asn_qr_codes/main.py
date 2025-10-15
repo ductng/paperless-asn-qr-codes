@@ -8,6 +8,8 @@ from reportlab_qrcode import QRCodeImage
 
 from paperless_asn_qr_codes import avery_labels
 
+import random
+
 def render(c, _, y):
     """ Render the QR code and ASN number on the label """
     global startASN
@@ -20,6 +22,18 @@ def render(c, _, y):
     c.setFont("Helvetica", 2 * mm)
     c.drawString(y, (y - 2 * mm) / 2, barcode_value)
 
+def render_random(c, _, y):
+    """ Render the QR code and ASN number on the label """
+    global startASN
+    global digits
+
+    rnum = random.randint(startASN,16**(digits-2))
+    barcode_value = f"0x{rnum:0{digits-2}X}"
+
+    qr = QRCodeImage(barcode_value, size=y * 0.9)
+    qr.drawOn(c, 1 * mm, y * 0.05)
+    c.setFont("Helvetica", 2 * mm)
+    c.drawString(y, (y - 2 * mm) / 2, barcode_value)
 
 def main():
     """ Main function for the paperless ASN QR code generator """
@@ -47,7 +61,7 @@ def main():
         help="The output file to write to (default: labels.pdf)",
     )
     parser.add_argument(
-        "--format", "-f", choices=available_formats, default="averyL4731"
+        "--format", "-f", choices=available_formats, default="herma4333"
     )
     parser.add_argument(
         "--digits",
@@ -61,6 +75,11 @@ def main():
         "-b",
         action="store_true",
         help="Display borders around labels, useful for debugging the printer alignment",
+    )
+    parser.add_argument(
+        "--random",
+        action="store_true",
+        help="Random labels",
     )
     parser.add_argument(
         "--row-wise",
@@ -105,5 +124,8 @@ def main():
     else:
         # Otherwise number of pages*labels - offset
         count = args.pages * label.across * label.down - label.position
-    label.render(render, count)
+    if args.random:
+        label.render(render_random, count)
+    else:
+        label.render(render, count)
     label.close()
